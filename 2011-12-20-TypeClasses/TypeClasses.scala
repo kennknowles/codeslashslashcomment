@@ -101,6 +101,9 @@ object Version {
 
 // xsbt console
 
+// scala> import Version._
+// import Version._
+
 // scala> forAll(deserializeSerialize[Version] _) check
 // + OK, passed 100 tests.
 
