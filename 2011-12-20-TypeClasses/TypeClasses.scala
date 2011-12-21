@@ -27,7 +27,8 @@ object Serialize {
   def serialize[T](v: T)(implicit instance: Serialize[T]) = instance._serialize(v)
   def deserialize[T](s: String)(implicit instance: Serialize[T]) = instance._deserialize(s)
 
-  def deserializeSerialize[T](v: T)(implicit instance: Serialize[T]) : Prop = (deserialize(serialize(v)) ?= Some(v))
+  def deserializeSerialize[T](v: T)(implicit instance: Serialize[T]) : Prop
+    = (deserialize(serialize(v)) ?= Some(v))
 }
 
 // And then you define instances for the types you are interested in. You will often start with standard types
@@ -45,20 +46,32 @@ object SerializeInstances {
 
   implicit object serializeInt extends Serialize[Int] {
     def _serialize(v: Int) = v.toString
-    def _deserialize(s: String) = try { Some(s.toInt) } catch { case _ => None }
+    def _deserialize(s: String) = 
+      try { Some(s.toInt) } catch { case _ => None }
   }
 
-  implicit def serializeTuple2[A, B](implicit l: Serialize[A], r: Serialize[B]) : Serialize[(A, B)] = new Serialize[(A, B)] {
-    def escape(s: String) = s.replaceAll("&", "&amp;").replaceAll(",", "&comma;")
-    def unescape(s: String) = s.replaceAll("&comma;", ",").replaceAll("&amp;", "&")
+  implicit def serializeTuple2[A, B]
+    (implicit l: Serialize[A], r: Serialize[B]) = new Serialize[(A, B)] {
 
-    def _serialize(v: (A, B)) = escape(serialize(v._1)) + "," + escape(serialize(v._2))
-    def _deserialize(s: String) : Option[(A, B)] = s.split(",", -1).toList match {
-      case leftS :: rightS :: Nil => for(left <- deserialize[A](unescape(leftS)); right <- deserialize[B](unescape(rightS))) yield (left, right)
-      case _ => None
+      def escape(s: String) = s.replaceAll("&", "&amp;")
+                               .replaceAll(",", "&comma;")
+
+      def unescape(s: String) = s.replaceAll("&comma;", ",")
+                                 .replaceAll("&amp;", "&")
+
+      def _serialize(v: (A, B)) = 
+        escape(serialize(v._1)) + "," + escape(serialize(v._2))
+
+      def _deserialize(s: String) = 
+        s.split(",", -1).toList match {
+          case leftS :: rightS :: Nil => {
+            for(left <- deserialize[A](unescape(leftS)); 
+                right <- deserialize[B](unescape(rightS))) 
+            yield (left, right)
+          }
+          case _ => None
+        }
     }
-  }
-
 }
 
 // Now you check that the property holds (via sbt console perhaps, or wrapping it is some scalatest test suite baggage)
@@ -91,11 +104,16 @@ object Version {
   import Serialize._
   import SerializeInstances._
 
-  implicit def arbVersion = Arbitrary[Version] { resultOf(Version.apply _) }
+  implicit def arbVersion = Arbitrary[Version] { 
+    resultOf(Version.apply _) 
+  }
 
   implicit object serializeVersion extends Serialize[Version] {
     def _serialize(v: Version) = Serialize.serialize(v.major, v.minor)
-    def _deserialize(s: String) = for((major, minor) <- deserialize[(Int, Int)](s)) yield Version(major, minor)
+    def _deserialize(s: String) = {
+      for((major, minor) <- deserialize[(Int, Int)](s)) 
+      yield Version(major, minor)
+    }
   }
 }
 
