@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <title>Shortest Path to FRP benefits in Javascript</title>
+ 
+    <script src="jquery.js"></script>
+    <script src="underscore.js"></script>
+    <script src="mustache.js"></script>
+    <script src="ICanHaz.js"></script>
+    <script src="backbone.js"></script>
+    <script src="reactive.js"></script>
+
+    <script type="text/html" id="icanhaz-example">
+      <ol>
+      {{#list}}
+      <li>{{value}}</li>
+      {{/list}}
+      </ol>
+    </script>
+  </head>
+  <body>
+    <div>Date and time: <span id="datetime"></span></div>
+    <div>Deciseconds: <span id="deciseconds"></span></div>
+    <div>Seconds: <span id="seconds"></span> and <span id="seconds2" /> and <span id="seconds3"></span></div>
+    <div>Seconds even: <span id="secondsEven"></span></div>
+    <div>Stuttering: <span id="stutter"></span></div>
+    <div>I can haz reactivity: <div id="icanhaz-output"></div></div>
+  </body>
+</html>
