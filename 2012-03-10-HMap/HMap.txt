@@ -1,10 +1,8 @@
-A heterogeneous collection is a sort of general idea of having a Set or Map or List where the elements may have different types.  I am generally not a fan of pretending these are all that closely related to a homogeneous collection, but they certainly can be useful structures. But their usefulness does not come from the ability to "just toss anything in there" like you might think if you come from a dynamically-typed scripting language. You can already simulate that in Scala/Java by casting to/from object, and it is easy and lightweight.
+The term "heterogeneous collection" captures a few different ideas, most popularly a set or list where the elements may have different types. This post is not about those, but about a map (or dictionary, or key-value mapping, or whatever else you'd like to call it) where the values may be of different types, but the program does not lose that type information.
 
-No, the benefit is recovering some of the type information that you lose when you treat everything as Object/AnyRef.
+I've made a preliminary library from these code snippets at <a href="https://github.com/kennknowles/scala-heterogeneous-map">https://github.com/kennknowles/scala-heterogeneous-map</a>. Let's jump right in and do our imports
 
-Let me get started and demonstrate a heterogeneous map.  Instead of Map[Key, Value] as you would normally have in Scala, I embed the type of the value _into the key_: HMap[TypedKey] Scala has some rather idiosyncratic ways of writing higher-kinded types, but here is the definition of the trait:
-
-[sourcecode language="scala"]
+[sourcecode language="scala" light="true"]
 import java.net.URI
 
 import org.scalacheck._
@@ -13,31 +11,36 @@ import org.scalacheck.Prop._
 import org.scalacheck.Pretty._
 [/sourcecode]
 
+To define a heterogeneous map, instead of <code>Map[Key, Value]</code> as you would normally have in Scala, we need a different type per key. So we <i>embed the type of the value into the key</i> by using a type constructor (function from type to type like <code>List[_]</code> or <code>Set[_]</code>) as our generic parameter to the <code>HMap</code> trait. Scala has some rather idiosyncratic ways of writing higher-kinded types, but here is the definition of the trait:
 
-[sourcecode language="scala"]
+[sourcecode language="scala" light="true"]
 trait HMap[TypedKey[_]] { self =>
   def get[T](key: TypedKey[T]) : Option[T]
   def put[T](key: TypedKey[T], value: T) : HMap[TypedKey]
 }
 [/sourcecode]
 
+You can already notice the principle feature: A key can only be used to put/get a value of the appropriate type. Exercise for the reader: Add iteration over key-value pairs.
+
 For this essay I will just use a default implementation layered directly on the existing type of maps and use casting under the hood.
 
-[sourcecode language="scala"]
+[sourcecode language="scala" light="true"]
 object HMap {
-  private class WrappedMap[TypedKey[_]](underlyingMap: Map[TypedKey[_], AnyRef]) extends HMap[TypedKey] {
-    def get[T](key: TypedKey[T]) = underlyingMap.get(key).asInstanceOf[Option[T]]
-    def put[T](key: TypedKey[T], value: T) = new WrappedMap(underlyingMap + (key.asInstanceOf[TypedKey[AnyRef]] -> value.asInstanceOf[AnyRef]))
+  private class WrappedMap[TypedKey[_]](m: Map[TypedKey[_], AnyRef])
+  extends HMap[TypedKey] {
+    def get[T](key: TypedKey[T]) = m.get(key).asInstanceOf[Option[T]]
+    def put[T](key: TypedKey[T], value: T) =
+      new WrappedMap(m + (key -> value.asInstanceOf[AnyRef]))
   }
 
   def empty[TypedKey[_]] : HMap[TypedKey] = new WrappedMap[TypedKey](Map())
 }
 [/sourcecode]
 
-At this point I cannot really do anything, because I do not have a type for the keys. Let me just make one up quick in an interactive session to demonstrate:
+Let's see about playing with this in the console for a bit. I'll need to improvise a type for the keys. I'll use integers with an extra type attached for the type of the values they point to.
 
-[sourcecode language="scala"]
-xsbt console
+[sourcecode language="scala" light="true"]
+$ xsbt console
 
 scala> case class TInt[T](i: Int)
 defined class TInt
@@ -67,32 +70,33 @@ scala> m1.get(TInt[Int](3))
 res4: Option[Int] = Some(hello)
 [/sourcecode]
 
-What? That last one is definitely wrong. Read on for why and how to fix it. The problem is Java's poor approach to equality, and I solve it via TInt, not HMap.
+What? That last one is definitely wrong. Read on for why and how to fix it. The problem is the Java/Scala/JVM approach to equality - below I solve it via <code>TInt</code>, not <code>HMap</code>.
 
-Good points worth noting: The type paramter of TInt has to match from key to value. The type parameter is also compile-time only. A good compiler can eliminate the boxing/unboxing, in general. There is probably some object-oriented reason why Scala is not allowed to, but I didn't check the bytecode.
+As was clear in the trait, the type parameter of <code>TInt</code> has to match from key to value. The type parameter is also compile-time only; a good compiler can eliminate the boxing/unboxing, in general. There is probably some object-oriented reason why Scala is not allowed to, but I didn't check the bytecode.
 
-Now the thing I did with TInt is a well-known pattern called "Phantom Types" (discussed here, here, here, here, and here) so I will define a general phantom-type-augmented value. It is basically as simple
-as "case class WithWithPhantom[T, WithPhantomT](v: T)" but there are some wrinkles surrounding equality as we saw earlier. Are values with different phantom types equal? Clearly they should not be, but
-this is actually kind of a pain.  I would love suggestions on improving these bits. Direct them to the actual github project for this code: https://github.com/kennknowles/scala-heterogeneous-map
+Now the thing I did with <code>TInt</code> is a well-known pattern called "Phantom Types" (discussed by <a href="http://engineering.foursquare.com/2011/01/31/going-rogue-part-2-phantom-types/">Foursquare</a>, <a href="http://neilmitchell.blogspot.com/2007/04/phantom-types-for-real-problems.html">Neil Mitchell</a>, <a href="http://www.cs.ox.ac.uk/ralf.hinze/talks/FOP.pdf">Ralf Hinze</a>, <a href="http://james-iry.blogspot.com/2010/10/phantom-types-in-haskell-and-scala.html">James Iry</a>, and you should really just search for it and read as much as you like) so I will define a general phantom-type-augmented value. It is basically as simple as "<code>case class WithPhantom[T, Phantom](v: T)</code>" but there are some wrinkles surrounding equality, as we saw earlier. Are equal values boxed with the different phantom types equal? Clearly they should not be, but the best way to implement this was not obvious to me. I would love suggestions on improving these bits. (Direct them to the previously-mentioned <a href="https://github.com/kennknowles/scala-heterogeneous-map">github project for this code</a>)
 
-[sourcecode language="scala"]
+[sourcecode language="scala" light="true"]
 case class WithPhantom[T, Phantom: Manifest](v: T) {
   private val m = implicitly[Manifest[Phantom]]
 
-  override def equals(other: Any) = other.isInstanceOf[WithPhantom[T, Phantom]] && {
-    val otherPh = other.asInstanceOf[WithPhantom[T, Phantom]]
-    (otherPh.m.erasure == this.m.erasure) && (otherPh.v == this.v)
-  }
+  override def equals(other: Any) =
+    other.isInstanceOf[WithPhantom[T, Phantom]] && {
+      val otherPh = other.asInstanceOf[WithPhantom[T, Phantom]]
+      (otherPh.m.erasure == this.m.erasure) && (otherPh.v == this.v)
+    }
 
-  override def hashCode = (v, implicitly[Manifest[Phantom]].hashCode).hashCode
+  override def hashCode =
+    (v, implicitly[Manifest[Phantom]].hashCode).hashCode
   
-  override def toString = "WithPhantom[%s](%s)".format(implicitly[Manifest[Phantom]].erasure.getName, v)
+  override def toString = "WithPhantom[%s](%s)"
+    .format(implicitly[Manifest[Phantom]].erasure.getName, v)
 }
 [/sourcecode]
 
-Now we can use this to have TInt, TString, and my favorite TURI.
+Now we can use this to have <code>TInt</code>, <code>TString</code>, and, my favorite, <code>TURI</code> (think of a mime type registry for a crawler)
 
-[sourcecode language="scala"]
+[sourcecode language="scala" light="true"]
 object WithPhantom {
   type TInt[T] = WithPhantom[Int, T]
   type TString[T] = WithPhantom[String, T]
@@ -104,56 +108,65 @@ object WithPhantom {
 }
 [/sourcecode]
 
-It is fun and all to play around in the scala console, but to make this robust, small as it is, I'll use scalacheck properties. For that, I will need Gen and Arbitrary values for WithPhantom and HMap. This is somewhat problematic because to have an arbitrary HMap I need to choose arbitrary types which is another discussion entirely. So for these properties, I just use two types and request that the invoker of the functions ensure that they are different if needed.
+It is fun and all to play around in the scala console, but to make this robust, small as it is, I'll use <a href="http://code.google.com/p/scalacheck/">ScalaCheck</a> properties. For that, I will need <code>Arbitrary</code> values for <code>WithPhantom</code> and <code>HMap</code>. This is somewhat problematic because to have an arbitrary <code>HMap</code> I need to choose arbitrary types which is another discussion entirely. So for these properties, I just use two types and request that the invoker of the functions ensure that they are different if needed, providing an arbitrary instance that just generates values that of types <code>Int</code> and <code>String</code>.
 
-Also hairy is that I could not get Scalac to have a non-divergent inference of Arbitrary[HMap[T]] so the Gen[HMap] value must be passed explicitly to forAll
-
-[sourcecode language="scala"]
+[sourcecode language="scala" light="true"]
 object ScalaCheckInstances {
 
-  implicit def arbWithPhantom[T: Arbitrary, Phantom: Manifest] : Arbitrary[WithPhantom[T, Phantom]] = Arbitrary(for(v <- arbitrary[T]) yield WithPhantom[T, Phantom](v))
+  implicit def arbWithPhantom[T: Arbitrary, Phantom: Manifest]
+    : Arbitrary[WithPhantom[T, Phantom]] =
+    Arbitrary(for(v <- arbitrary[T]) yield WithPhantom[T, Phantom](v))
 
-  def genHMap[Value1, Value2, TypedKey[_]](implicit arbV1: Arbitrary[Value1], arbV2: Arbitrary[Value2], arbK1: Arbitrary[TypedKey[Value1]], arbK2: Arbitrary[TypedKey[Value2]]) : Gen[HMap[TypedKey]] = {
-    for {
-      kv1List <- arbitrary[List[(TypedKey[Value1], Value1)]]
-      kv2List <- arbitrary[List[(TypedKey[Value2], Value2)]]
-    } yield {
-      var hmap = HMap.empty[TypedKey]
-      for ((k, v) <- kv1List) { hmap = hmap.put(k, v) }
-      for ((k, v) <- kv2List) { hmap = hmap.put(k, v) }
-      hmap
-    }
+  def genHMap[Value1, Value2, TypedKey[_]](
+    implicit arbV1: Arbitrary[Value1],
+             arbV2: Arbitrary[Value2],
+             arbK1: Arbitrary[TypedKey[Value1]],
+             arbK2: Arbitrary[TypedKey[Value2]]): Gen[HMap[TypedKey]] = {
+      for {
+        kv1List <- arbitrary[List[(TypedKey[Value1], Value1)]]
+        kv2List <- arbitrary[List[(TypedKey[Value2], Value2)]]
+      } yield {
+        var hmap = HMap.empty[TypedKey]
+        for ((k, v) <- kv1List) { hmap = hmap.put(k, v) }
+        for ((k, v) <- kv2List) { hmap = hmap.put(k, v) }
+        hmap
+      }
   }
 
   // For arbitrary, I just choose Int and String as the two phantom types and TInt for the key
-  implicit def arbHMap[TypedKey[_]](implicit arbKInt: Arbitrary[TypedKey[Int]], arbKString: Arbitrary[TypedKey[String]]) = Arbitrary(genHMap[Int, String, TypedKey])
+  implicit def arbHMap[TypedKey[_]](
+    implicit arbKInt: Arbitrary[TypedKey[Int]],
+             arbKString: Arbitrary[TypedKey[String]]) =
+    Arbitrary(genHMap[Int, String, TypedKey])
 }
 [/sourcecode]
 
-The most important test is that WithPhantom[Int, Int](x) != WithPhantom[Int, String](x) because that is the code I was least confident in. My pattern is to define properties without forAll invocations and separately register those properties with the testing framework. Generating arbitrary types is beyond the scope of this essay, so I just ask the caller of the prop_typeMiss to provide different types.
+The most important test is that <code>WithPhantom[Int, Int](x) != WithPhantom[Int, String](x)</code> because that is the code I was least confident in. My pattern is to define properties without <code>forAll</code> invocations and separately register those properties with the testing framework. As before, generating arbitrary types is beyond the scope of this essay, so I just ask the caller of the <code>prop_typeMiss</code> to provide different types.
 
-[sourcecode language="scala"]
+[sourcecode language="scala" light="true"]
 object WithPhantomProperties extends Properties("WithPhantom") { 
-
   // Types must be different
   def prop_typeMiss[T, Value1: Manifest, Value2: Manifest](x: T) : Prop =
     WithPhantom[T, Value1](x) != WithPhantom[T, Value2](x)
 
-  property("typeMiss") = forAll { x:Int => prop_typeMiss[Int, Boolean, String](x) }
+  property("typeMiss") =
+    forAll { x:Int => prop_typeMiss[Int, Boolean, String](x) }
 }
 [/sourcecode]
 
-[sourcecode language="scala"]
-xsbt console
+In the github project, you can run these via "<code>xsbt test</code>", but if you are just following along by copying this into a .scala file, then the easiest way is via "<code>xsbt console</code>".
+
+[sourcecode language="scala" light="true"]
+$ xsbt console
 
 WithPhantomProperties.check
 + WithPhantom.typeMiss: OK, passed 100 tests.
 [/sourcecode]
 
-And then the spec for HMap is more-or-less the same as the spec for map, but we add an extra check to make sure that lookups in the map for different phantom types also miss.
+And then the spec for <code>HMap</code> is more-or-less the same as the spec for <code>Map</code>, but we add an extra check to make sure that lookups in the map for different phantom types also miss.
 
-[sourcecode language="scala"]
-class HMapProperties extends Properties("HMap") { 
+[sourcecode language="scala" light="true"]
+object HMapProperties extends Properties("HMap") { 
   import ScalaCheckInstances._
   import WithPhantom._ // for TInt, etc
 
@@ -163,34 +176,51 @@ class HMapProperties extends Properties("HMap") {
   def prop_hit[TypedKey[_], T](m: HMap[TypedKey], x: TypedKey[T], v: T) : Prop = 
     m.put(x, v).get(x) ?= Some(v)
 
-  def prop_miss[TypedKey[_], T](m: HMap[TypedKey], x: TypedKey[T], y: TypedKey[T], v: T) : Prop = 
-    { (x != y) ==> (m.put(y, v).get(x) ?= m.get(x)) }
+  def prop_miss[TypedKey[_], T](m: HMap[TypedKey], x: TypedKey[T],
+                                y: TypedKey[T], v: T) : Prop =
+      (x != y) ==> (m.put(y, v).get(x) ?= m.get(x))
     
   // When x == y but T != U
-  def prop_typeMiss[TypedKey[_], T, U](m: HMap[TypedKey], x: TypedKey[T], y: TypedKey[U], v: U) : Prop = {
+  def prop_typeMiss[TypedKey[_], T, U](m: HMap[TypedKey], x: TypedKey[T],
+                                       y: TypedKey[U], v: U) : Prop =
     m.put(y, v).get(x) ?= m.get(x)
-  }
 
   property("empty") = forAll { x:TInt[Int] => prop_empty(x) }
 
   property("hit") = forAll { (m:HMap[TInt], x: TInt[Int], v: Int) => prop_hit(m, x, v) }
   
-  property("miss") = forAll { (m:HMap[TInt], x: TInt[Int], y: TInt[Int], v: Int) => prop_miss(m, x, y, v) }
+  property("miss") = forAll { (m:HMap[TInt], x: TInt[Int], 
+                               y: TInt[Int], v: Int) =>
+    prop_miss(m, x, y, v)
+  }
   
-  property("typeMiss") = forAll { (m:HMap[TInt], x: Int, v: Boolean) => prop_typeMiss(m, 
-                                                                                      WithPhantom[Int, Int](x).asInstanceOf[TInt[Int]], 
-                                                                                      WithPhantom[Int, Boolean](x).asInstanceOf[TInt[Boolean]], 
-                                                                                      v) }
+  property("typeMiss") = forAll { (m:HMap[TInt], x: Int, v: Boolean) => 
+    prop_typeMiss(m,
+                  WithPhantom[Int, Int](x).asInstanceOf[TInt[Int]],
+                  WithPhantom[Int, Boolean](x).asInstanceOf[TInt[Boolean]], 
+                  v) }
 }
 [/sourcecode]
 
-All the checks pass! I do have some lingering doubts about equality and hashcodes.
+And try it in the console
 
-I'm not claiming novelty of idea or implementation; I have simply bothered to write these thoughts up
-as an exercise for myself and hopefully entertainment for you. Here are some other references to similar ideas:
+[sourcecode language="scala" light="true"]
+$ xsbt console
 
- * http://thread.gmane.org/gmane.comp.lang.scala/12629
- * http://scala-programming-language.1934581.n4.nabble.com/differently-typed-values-in-Map-td1942540.html
- * http://scala-programming-language.1934581.n4.nabble.com/scala-Interesting-use-for-existential-types-td1991961.html
- * http://homepages.cwi.nl/~ralf/HList/
+scala> HMapProperties.check
++ HMap.empty: OK, passed 100 tests.
++ HMap.hit: OK, passed 100 tests.
++ HMap.miss: OK, passed 100 tests.
++ HMap.typeMiss: OK, passed 100 tests.
+[/sourcecode]
 
+All the checks pass! I do have some lingering doubts about equality and hashcodes...
+
+I'm not claiming novelty of idea or implementation; I have simply written these thoughts up as an exercise for myself and hopefully entertainment for you. Here are some other references to similar ideas; please share other related links in the comments.
+
+<ul>
+<li><a href="http://thread.gmane.org/gmane.comp.lang.scala/12629">http://thread.gmane.org/gmane.comp.lang.scala/12629</a></li>
+<li><a href="http://scala-programming-language.1934581.n4.nabble.com/differently-typed-values-in-Map-td1942540.html">http://scala-programming-language.1934581.n4.nabble.com/differently-typed-values-in-Map-td1942540.html</a></li>
+<li><a href="http://scala-programming-language.1934581.n4.nabble.com/scala-Interesting-use-for-existential-types-td1991961.html">http://scala-programming-language.1934581.n4.nabble.com/scala-Interesting-use-for-existential-types-td1991961.html</a></li>
+<li><a href="http://homepages.cwi.nl/~ralf/HList/">http://homepages.cwi.nl/~ralf/HList/</a></li>
+</ul>
