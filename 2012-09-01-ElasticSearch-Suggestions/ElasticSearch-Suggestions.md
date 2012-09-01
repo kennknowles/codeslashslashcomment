@@ -1,7 +1,7 @@
 [ElasticSearch](http://www.elasticsearch.org/) is a zero-configuration, real-time, clustered search-oriented
 JSON data store built on top of [Apache Lucene](http://lucene.apache.org/). In fact,
 there is configuration but it is optional and available via ElasticSearch's REST API.
-This post is a quick demonstration of settingup a configuration to provide search suggestions,
+This post is a quick demonstration of setting up a configuration to provide search suggestions,
 and the query you use to extract them.
 
 First, grab the latest ElasticSearch and fire it up.
