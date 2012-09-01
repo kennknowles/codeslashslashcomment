@@ -332,8 +332,8 @@ The results are hardly a list of suggestions.
 In fact, the suggestions exist only as part of the index, not the document. The way to group
 stuff by the suggestions they offer - and get a count as a bonus - is to use _[facets](http://www.elasticsearch.org/guide/reference/api/search/facets/)_.
 
-```bash
-curl -XGET 'http://localhost:9200/store/clothing/_search?pretty=1' -d '{
+```console
+$ curl -XGET 'http://localhost:9200/store/clothing/_search?pretty=1' -d '{
   "query":{
     "prefix":{
       "description.suggestions":"loo"
