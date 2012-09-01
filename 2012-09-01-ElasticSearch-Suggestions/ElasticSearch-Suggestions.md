@@ -1,8 +1,11 @@
-[ElasticSearch](http://www.elasticsearch.org/) is a zero-configuration, real-time, clustered search-oriented JSON data store built on top of Apache Lucene. In fact,
-there is configuration but it is optional and available via ElasticSearch's REST API. This post is a quick demonstration of setting
-up a configuration to provide search suggestions, and the query you use to extract them.
+[ElasticSearch](http://www.elasticsearch.org/) is a zero-configuration, real-time, clustered search-oriented
+JSON data store built on top of [Apache Lucene](http://lucene.apache.org/). In fact,
+there is configuration but it is optional and available via ElasticSearch's REST API.
+This post is a quick demonstration of settingup a configuration to provide search suggestions,
+and the query you use to extract them.
 
-First, grab the latest ElasticSearch and fire it up. I will assume you have it running at [http://localhost:9200](http://localhost:9200).
+First, grab the latest ElasticSearch and fire it up.
+I will assume you have it running at [http://localhost:9200](http://localhost:9200).
 
 ```console
 $ curl -XGET 'http://localhost:9200?pretty=1'
@@ -28,7 +31,8 @@ For today, we are indexing a bunch of articles of clothing with a description, l
 }
 ```
 
-Even though we could just post some documents into ElasticSearch, because of [Issue #2225](https://github.com/elasticsearch/elasticsearch/issues/2225)
+Even though we could just post some documents into ElasticSearch, 
+because of [Issue #2225](https://github.com/elasticsearch/elasticsearch/issues/2225)
 we really want to create our whole config prior to adding any documents. But it can be instructive to check out what happens automatically to the
 bits that we are going to customize.
 
@@ -100,10 +104,15 @@ $ curl -XDELETE 'http://eocalhost:9200/store?pretty=1'
 }
 ```
 
-In order to generate search suggestions, we are going to want to harvest un-stemmed phrases from the description of about 2 to 5 words.
-This is what is known as a `ShingleFilter` in Lucene parlance, and `shingle` when you add a token filter to ElasticSearch. ElasticSearch
-breaks your documents down into _properties_ which may each contain many _fields_ that are each different ways that property is analyzed.
-Each _field_ gets an _analyzer_, and each _analyzer_ is composed of a _tokenizer_ and a list of _filters_. You need to define them all
+In order to generate search suggestions, we are going to want to harvest un-stemmed phrases from the 
+description of about 2 to 5 words by customizing 
+ElasticSearch's [Analaysis](http://www.elasticsearch.org/guide/reference/index-modules/analysis/) settings.
+The analysis we want is what is known as a `ShingleFilter` in Lucene parlance, and `shingle` when you add a token 
+filter to ElasticSearch. ElasticSearch
+breaks your documents down into _properties_ which may each contain many _fields_ that are each
+different ways that property is analyzed.
+Each _field_ gets an _analyzer_, and each _analyzer_ is composed of a _tokenizer_ and a list 
+of _filters_. You need to define them all
 by name so that you can reference them in your fields.
 
 (Note: If you use ElasticSearch 0.19.9 or earlier, the `min_shingle_size` and `max_shingle_size` arguments are reversed, but this is fixed by ~~[Pull #2226](https://github.com/elasticsearch/elasticsearch/pull/2226)~~)
@@ -304,8 +313,8 @@ $ curl -XGET 'http://localhost:9200/store/_mapping?pretty=1'
 
 Now we have suggestions in there, but how do we query them? We want to get a list of phrases for which documents
 have high scores that could complete whatever characters we have typed. So we want a prefix query, but what
-we want to return is the suggestions themselves, not the documents. So, a naive query for suggestions
-for "loo" might be like so
+we want to return is the suggestions themselves, not the documents. So, a naive query (i.e the first thing
+I tried) for "loo" might be like so
 
 ```bash
 # Not quite right - just returns docs that have matching suggestions
@@ -319,10 +328,9 @@ curl -XGET 'http://localhost:9200/store/clothing/_search?pretty=1' -d '{
 }'
 ```
 
-This does appropriately leave out the ten gallon hat, but the results are hardly a list of suggestions.
-In fact, the suggestions exist only as part of the index, not the document! The way to group
-stuff by the suggestions they offer - and get a count as a bonus - is to use _facets_. This really
-just means "group by and count".
+The results are hardly a list of suggestions.
+In fact, the suggestions exist only as part of the index, not the document. The way to group
+stuff by the suggestions they offer - and get a count as a bonus - is to use _[facets](http://www.elasticsearch.org/guide/reference/api/search/facets/)_.
 
 ```bash
 curl -XGET 'http://localhost:9200/store/clothing/_search?pretty=1' -d '{
@@ -386,7 +394,8 @@ curl -XGET 'http://localhost:9200/store/clothing/_search?pretty=1' -d '{
 }
 ```
 
-So those results are fairly useful, though you probably want to massage their order. Suggestions welcome!
+So those results are fairly useful, though you probably want to massage their order and shingle size,
+and the documents returned are largely irrelevant. Suggestions welcome!
 
 Others have written about similar uses of Solr and Lucene, and their writing inspired some of this post.
 Definitely check them out:
