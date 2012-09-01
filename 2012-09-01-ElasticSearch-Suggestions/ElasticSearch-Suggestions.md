@@ -1,8 +1,8 @@
-ElasticSearch is a zero-configuration, real-time, clustered search-oriented JSON data store built on top of Apache Lucene. In fact,
+[ElasticSearch](http://www.elasticsearch.org/) is a zero-configuration, real-time, clustered search-oriented JSON data store built on top of Apache Lucene. In fact,
 there is configuration but it is optional and available via ElasticSearch's REST API. This post is a quick demonstration of setting
 up a configuration to provide search suggestions, and the query you use to extract them.
 
-First, grab the latest ElasticSearch and fire it up. I will assume you have it running at `http://localhost:9200`.
+First, grab the latest ElasticSearch and fire it up. I will assume you have it running at [http://localhost:9200](http://localhost:9200).
 
 ```console
 $ curl -XGET 'http://localhost:9200?pretty=1'
@@ -18,7 +18,7 @@ $ curl -XGET 'http://localhost:9200?pretty=1'
 }
 ```
 
-Let us just assume that we will just input some articles of clothing and a blurb about them, for example:
+For today, we are indexing a bunch of articles of clothing with a description, like so:
 
 ```json
 {
@@ -40,6 +40,7 @@ $ curl -XPOST 'http://localhost:9200/store/clothing/leather-jacket?pretty=1' -d 
  "description": "A must have in order to look like a real biker. Sleaveless varieties will effectively show off your guns."
 }
 '
+
 {
   "ok" : true,
   "_index" : "store",
@@ -54,11 +55,12 @@ $ curl -XGET 'http://localhost:9200/store/clothing/leather-jacket?pretty=1'
   "_type" : "clothing",
   "_id" : "leather-jacket",
   "_version" : 1,
-  "exists" : true, "_source" : 
-{
- "sku": "leather-jacket",
- "title": "Leather Jacket",
- "description": "A must have in order to look like a real biker. Sleaveless varieties will effectively show off your guns."
+  "exists" : true,
+  "_source" : {
+    "sku": "leather-jacket",
+    "title": "Leather Jacket",
+    "description": "A must have in order to look like a real biker. Sleaveless varieties will effectively show off your guns."
+  }
 }
 
 $ curl -XGET 'http://localhost:9200/store/_settings?pretty=1'
@@ -104,6 +106,8 @@ breaks your documents down into _properties_ which may each contain many _fields
 Each _field_ gets an _analyzer_, and each _analyzer_ is composed of a _tokenizer_ and a list of _filters_. You need to define them all
 by name so that you can reference them in your fields.
 
+(Note: If you use ElasticSearch 0.19.9 or earlier, the `min_shingle_size` and `max_shingle_size` arguments are reversed, but this is fixed by ~~[Pull #2226](https://github.com/elasticsearch/elasticsearch/pull/2226)~~)
+
 ```json
 {
   "settings": {
@@ -126,7 +130,7 @@ by name so that you can reference them in your fields.
 }
 ```
 
-(Note: If you use ElasticSearch 0.19.9 or earlier, the `min_shingle_size` and `max_shingle_size` arguments are reversed, but this is fixed by [Pull #2226](https://github.com/elasticsearch/elasticsearch/pull/2226))
+And let us POST it and see what the result looks like
 
 ```console
 $ curl -XPOST 'http://localhost:9200/store?pretty=1' -d '
@@ -148,8 +152,7 @@ $ curl -XPOST 'http://localhost:9200/store?pretty=1' -d '
       }
     }
   }
-}
-'
+}'
 
 $ curl -XGET 'http://localhost:9200/store/_settings?pretty=1'
 {
