@@ -1,4 +1,3 @@
-
 [Tastypie](http://tastypieapi.org/) is a [Django](https://www.djangoproject.com/)-based framework for building a REST API.
 It is most effective as a direct wrapper on Django models, resulting in extremely concise code to expose models
 as REST resources (using the now-standard terminology where _resource_ means a collection of similar objects). This broad
@@ -25,4 +24,4 @@ which methods have access to the HTTP Request (turns out it is all of them, basi
 have access to the working copy of the objects (or Django query result) to be returned to the client.
 I hope you find this helpful, and please comment with any corrections.
 
-![Tastypie get_object call diagram](Tastypie-get_object.png)
+![Tastypie get_object call diagram](Tastypie-get_objects.png)
