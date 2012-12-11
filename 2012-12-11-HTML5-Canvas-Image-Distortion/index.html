@@ -1,0 +1,22 @@
+<html>
+  <head>
+    <style>
+      #mapping-demo { display: box; display: -ms-box; display: -webkit-box; display: -moz-box; }
+      #mapping-demo div { -webkit-box-flex: 0; -moz-box-flex: 0; -ms-box-flex: 0; }
+      .canvas { border: 1px solid black; }
+    </style>
+
+    <script src="vendor/underscore-min.js" type="application/javascript"></script>
+    <script src="vendor/jquery.min.js" type="application/javascript"></script>
+    <script src="vendor/kinetic-v4.1.2.js" type="application/javascript"></script>
+
+    <script src="image-distortion-demo.js" type="application/javascript"></script>
+  </head>
+  <body>
+    <div id="mapping-demo">
+      <div class="canvas" id="input-container"></div>
+      <div>== maps to ==></div>
+      <div class="canvas" id="output-container"></div>
+    </div>
+  </body>
+</html>
