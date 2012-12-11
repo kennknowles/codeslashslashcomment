@@ -1,43 +1,4 @@
 
-Dynamic Image Distortion in the Browser with HTML5 Canvas (UI via KineticJS and Knockout)
-========================================================================================
-
-HTML5 Canvas is a raw drawing interface, supporting images and many shapes directly,
-but also giving direct access to pixel manipulations. One such manipulation that
-I have wanted to use is distorting an image based on control points. I'll show a
-basic demo of how to do this by essentially doing "texture mapping" from one
-HTML5 Canvas to another.
-
-If you want to immediately see the UI in action,
-[go look at it right here](http://kennknowles.github.com/codeslashslashcomment/2012-12-11-HTML5-Canvas-Image-Distortion/). (I cannot use
-Javascript or iframes directly due to wordpress.com limitations)
-
-For the demo, I put together an extremely minimal HTML scaffolding, and use KineticJS
-to attach the canvas components.
-
-```html
-<html>
-  <head>
-    <style>
-      #mapping-demo { display: box; display: -ms-box; display: -webkit-box; display: -moz-box; }
-      #mapping-demo div { -webkit-box-flex: 0; -moz-box-flex: 0; -ms-box-flex: 0; }
-      .canvas { border: 1px solid black; }
-    </style>
-
-    <script src="vendor/underscore-min.js" type="application/javascript"></script>
-    <script src="vendor/jquery.min.js" type="application/javascript"></script>
-    <script src="vendor/kinetic-v4.1.2.js" type="application/javascript"></script>
-
-    <script src="texture-mapping.js" type="application/javascript"></script>
-  </head>
-  <body>
-    <div id="mapping-demo">
-      <div class="canvas" id="input-container"></div>
-      <div>== maps to ==></div>
-      <div class="canvas" id="output-container"></div>
-    </div>
-  </body>
-</html>
 
 Note that for security reasons all the Javascript and images involved must
 be hosted from the same origin. To try this at home (at lesat in Chrome) you 
@@ -46,7 +7,31 @@ this in a directory containing the example code:
 
     python -m SimpleHTTPServer 
 
-...
+And now navigate to `localhost:8000` to view the demo.
+
+This article has two parts: the set up for the input and the set up for
+the output. The input set up is more of an tutorial for KineticJS
+basics. The output is where the warping comes in.
+
+So, let us begin writing the function `attach_input_stage`. A
+_stage_ is what KineticJS calls a scenegraph, more-or-less. It
+consists of a bunch of layers that can each contain various
+shapes and mobile objects, etc. Pretty typical stuff, but
+you should certainly read [How It Works]() on the KineticJS
+wiki.
+
+```
+function attach_input_stage(options) {
+
+}
+```
+
+
+
+So, the first thing that needs to happen is to attach a KineticJS
+canvas to each of the `div`s set up for that purpose.
+
+
 
 Further reading on HTML5 Canvas and KineticJS
 
