@@ -1,0 +1,25 @@
+<html>
+  <head>
+    <style>
+      #mapping-demo div { 
+        display: inline-block;
+        vertical-align: middle;
+      }
+      .canvas { border: 1px solid black; }
+    </style>
+
+    <script src="vendor/underscore-min.js" type="application/javascript"></script>
+    <script src="vendor/jquery.min.js" type="application/javascript"></script>
+    <script src="vendor/kinetic-v4.1.2.js" type="application/javascript"></script>
+    <script src="vendor/knockout-min.js" type="application/javascript"></script>
+
+    <script src="image-distortion-demo.js" type="application/javascript"></script>
+  </head>
+  <body>
+    <div id="mapping-demo">
+      <div class="canvas" id="input-container"></div>
+      <div>== maps to ==></div>
+      <div class="canvas" id="output-container"></div>
+    </div>
+  </body>
+</html>

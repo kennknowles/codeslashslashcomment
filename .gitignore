@@ -1,0 +1,8 @@
+# Emacs
+*~
+\#*\#
+.\#*
+
+# SBT
+*/target/*
+*/project/*
