@@ -233,50 +233,55 @@ function warpable_triangle_control(named_parameters) {
 
     ko.computed(function() {
         var warped_triangle = _(self.warped_triangle()).map(p2v); // Get in vector form
-
         var current_image_data = input_image_data(); // Freeze the observable here
         if (!current_image_data) {
             console.log('Bailing out; image not loaded yet?');
             return;
         }
-
-        var input_pixel_data = current_image_data.data;
         var warped_image_data = drawing_context.getImageData(0, 0, drawing_context.canvas.width, drawing_context.canvas.height);
-        var warped_pixel_data = warped_image_data.data;
 
-        for(var x = 0; x < warped_image_data.width; x++) {
-            for(var y = 0; y < warped_image_data.height; y++) {
-                var uv = cartesian_to_barycentric(warped_triangle, [x, y]);
-
-                // Did I forget to mention this other lovely aspect of barycentric coords?
-                var in_triangle = (uv[0] >= 0) && (uv[1] >= 0) && (uv[0] + uv[1] <= 1); 
-
-                var pixel_start = PIXEL_WIDTH * (x + y * warped_image_data.width); 
-
-                if (in_triangle) {
-                    input_xy = barycentric_to_cartesian(input_triangle, uv);
-
-                    input_pixel_start = PIXEL_WIDTH * (Math.floor(input_xy[0]) + Math.floor(input_xy[1]) * current_image_data.width);
-
-                    warped_pixel_data[pixel_start] = input_pixel_data[input_pixel_start];
-                    warped_pixel_data[pixel_start+1] = input_pixel_data[input_pixel_start+1];
-                    warped_pixel_data[pixel_start+2] = input_pixel_data[input_pixel_start+2];
-                    warped_pixel_data[pixel_start+3] = input_pixel_data[input_pixel_start+3];
-
-                } else {
-                    warped_pixel_data[pixel_start] = 255;
-                    warped_pixel_data[pixel_start+1] = 255;
-                    warped_pixel_data[pixel_start+2] = 255;
-                    warped_pixel_data[pixel_start+3] = 255;
-                }
-            }
-        }
-
+        map_triangle(current_image_data, input_triangle, warped_image_data, warped_triangle);
         drawing_context.putImageData(warped_image_data, 0, 0);
     });
 
     return self;
 }
+
+/*
+
+*/
+
+function map_triangle(src_image_data, src_triangle, dst_image_data, dst_triangle) {
+    var src_pixel_data = src_image_data.data;
+    var dst_pixel_data = dst_image_data.data;
+
+    for(var x = 0; x < dst_image_data.width; x++) {
+        for(var y = 0; y < dst_image_data.height; y++) {
+            var uv = cartesian_to_barycentric(dst_triangle, [x, y]);
+            
+            // Did I forget to mention this other lovely aspect of barycentric coords?
+            var xy_in_triangle = (uv[0] >= 0) && (uv[1] >= 0) && (uv[0] + uv[1] <= 1); 
+            
+            var dst_pixel_start = PIXEL_WIDTH * (x + y * dst_image_data.width); 
+            
+            if (xy_in_triangle) {
+                src_xy = barycentric_to_cartesian(src_triangle, uv);
+                src_pixel_start = PIXEL_WIDTH * (Math.floor(src_xy[0]) + Math.floor(src_xy[1]) * src_image_data.width);
+
+                dst_pixel_data[dst_pixel_start]   = src_pixel_data[src_pixel_start];
+                dst_pixel_data[dst_pixel_start+1] = src_pixel_data[src_pixel_start+1];
+                dst_pixel_data[dst_pixel_start+2] = src_pixel_data[src_pixel_start+2];
+                dst_pixel_data[dst_pixel_start+3] = src_pixel_data[src_pixel_start+3];
+            } else {
+                dst_pixel_data[dst_pixel_start] = 255;
+                dst_pixel_data[dst_pixel_start+1] = 255;
+                dst_pixel_data[dst_pixel_start+2] = 255;
+                dst_pixel_data[dst_pixel_start+3] = 255;
+            }
+        }
+    }
+}
+
 
 /*
  * Main Glue
