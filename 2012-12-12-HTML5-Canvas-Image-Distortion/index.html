@@ -1,11 +1,30 @@
 <html>
   <head>
     <style>
+      body {
+        background-color: #D8CFA8;
+      }
+      #mapping-demo {
+        width: 90%;
+        margin-top: 50px;
+        margin-left: auto;
+        margin-right: auto;
+      }
       #mapping-demo div { 
         display: inline-block;
         vertical-align: middle;
       }
-      .canvas { border: 1px solid black; }
+      #arrow {
+        font-family: "Arial Rounded MT Bold", "Helvetica Rounded", Arial, sans-serif;
+        font-size: 100pt;
+        font-weight: bold;
+        padding: 10px;
+        color: #5F4D4B;
+      }
+      .canvas { 
+        border: 1px solid #6E8D7B;
+        background-color: white;
+      }
     </style>
 
     <script src="vendor/underscore-min.js" type="application/javascript"></script>
@@ -18,7 +37,7 @@
   <body>
     <div id="mapping-demo">
       <div class="canvas" id="input-container"></div>
-      <div>== maps to ==></div>
+      <div id="arrow">&#8674;</div>
       <div class="canvas" id="output-container"></div>
     </div>
   </body>
