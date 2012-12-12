@@ -61,6 +61,34 @@ And I will step through the code
 
 */
 
+function draggable_image_layer(image_url) {
+    var image_layer = new Kinetic.Layer();
+    
+    // Since Knockout's reactivity is push-based, one
+    // should be careful in production to check performance 
+    // and selectively throttle "continuous" event sources
+    // like a moving image. I won't bother now, though.
+    image_layer.image_data = ko.observable();
+    function update_image_data() {
+        var canvas = image_layer.getCanvas();
+        image_layer.image_data(canvas.getContext('2d').getImageData(0, 0, canvas.getWidth(), canvas.getHeight()));
+    }
+
+    var image = new Kinetic.Image({ draggable: true });
+    image_layer.add(image);
+    image.on("dragmove", update_image_data);
+
+    var img = new Image(); // HTML <img> "tag" to load
+    img.onload = function() {
+        image.setImage(img);
+        image_layer.draw();
+        update_image_data();
+    };
+    img.src = image_url;
+
+    return image_layer;
+}
+
 function triangular_viewport_control(named_parameters) {
     var self = {};
 
@@ -68,53 +96,18 @@ function triangular_viewport_control(named_parameters) {
     var container_id = named_parameters.container_id;
     var container_size = named_parameters.container_size;
     var image_url = named_parameters.image_url;
+    var viewport_triangle = named_parameters.viewport_triangle;
 
-    // I didn't mention it but the first point had *better* be the top left and the last one bottom right :-)
-    self.viewport_triangle = named_parameters.viewport_triangle;
-    
     /* Attach to the DOM; start out with an image layer and a label layer */
     var stage = new Kinetic.Stage({ 
         container: container_id,
         width: container_size.width,
         height: container_size.height
     });
-    var image_layer = new Kinetic.Layer();
+    var image_layer = draggable_image_layer(image_url);
     var label_layer = new Kinetic.Layer();
     stage.add(image_layer);
     stage.add(label_layer);
-
-    /*
-      The interesting bit is here, where each time the image moves, the
-      image data changes. Since Knockout's reactivity is push-based,
-      one should be careful to check performance and selectively throttle
-      "continuous" event sources, like a moving image,
-      things in a production system. I won't bother now, though.
-     */
-    self.image_data = ko.observable();
-    function update_image_data() { 
-        self.image_data(image_layer
-                          .getCanvas()
-                          .getContext('2d')
-                          .getImageData(0, 0, container_size.width, container_size.height));
-    }
-
-
-    /* And the draggable image that updates */
-    var image = new Kinetic.Image({ draggable: true });
-    image_layer.add(image);
-    image.on("dragmove", update_image_data);
-
-    /* And finally an image of pure data that also causes an update */
-    var img = new Image(); // HTML <img> tag, for loading
-    img.onload = function() {
-        image.setImage(img);
-        image.setPosition((container_size.width - img.width) / 2, (container_size.height - img.height) / 2);
-        image_layer.draw();
-        update_image_data();
-    };
-    img.src = image_url;
-
-    update_image_data(); // Kick
 
     /*
       On the label layer - separated so that its image data does not show up in the 
@@ -129,30 +122,34 @@ function triangular_viewport_control(named_parameters) {
                  { x: container_size.width, y: container_size.height },
                  { x: container_size.width, y: 0 },
                  { x: 0, y: 0},
-                 self.viewport_triangle[0],
-                 self.viewport_triangle[2],
-                 self.viewport_triangle[1],
-                 self.viewport_triangle[0]],
+                 viewport_triangle[0],
+                 viewport_triangle[2],
+                 viewport_triangle[1],
+                 viewport_triangle[0]],
         fill: 'white', strokeWidth: 0, opacity: 0.7,
         drawHitFunc: function() { }
     }));
 
     // Solid red outline
     label_layer.add(new Kinetic.Polygon({
-        points: self.viewport_triangle,
+        points: viewport_triangle,
         strokeWidth: 2, stroke: 'red',
         drawHitFunc: function() { }
     }));
 
     // Labeled corners
-    _(self.viewport_triangle).each(function(point, idx) {
+    _(viewport_triangle).each(function(point, idx) {
         var letter = String.fromCharCode('A'.charCodeAt(0) + idx);
         label_layer.add(circled_letter(letter, point, false));
     });
 
     label_layer.draw(); // Kick it for good measure
 
-    return self;
+    return {
+        // I didn't mention it but the first point had *better* be the top left and the last one bottom right :-)
+        viewport_triangle: viewport_triangle,
+        image_data: image_layer.image_data
+    }
 }
 
 /*
@@ -238,6 +235,11 @@ function warpable_triangle_control(named_parameters) {
         var warped_triangle = _(self.warped_triangle()).map(p2v); // Get in vector form
 
         var current_image_data = input_image_data(); // Freeze the observable here
+        if (!current_image_data) {
+            console.log('Bailing out; image not loaded yet?');
+            return;
+        }
+
         var input_pixel_data = current_image_data.data;
         var warped_image_data = drawing_context.getImageData(0, 0, drawing_context.canvas.width, drawing_context.canvas.height);
         var warped_pixel_data = warped_image_data.data;
