@@ -249,6 +249,9 @@ function warpable_triangle_control(named_parameters) {
 
 /*
 
+This is the actual HTML Canvas use as well as where the math
+is put to work.
+
 */
 
 function map_triangle(src_image_data, src_triangle, dst_image_data, dst_triangle) {
