@@ -291,7 +291,7 @@ $(document).ready(function() {
     var input_control = triangular_viewport_control({ 
         container_id: 'input-container',
         container_size: { width: 400, height: 400 },
-        image_url: 'picture.jpg',
+        image_url: 'ice_cream.jpg',
         viewport_triangle: [
             { x: 100, y: 100 },
             { x: 100, y: 300 },
