@@ -116,25 +116,32 @@ function triangular_viewport_control(named_parameters) {
     */
 
     // Dimming the area outside the viewport
-    label_layer.add(new Kinetic.Polygon({ 
-        points: [{ x: 0, y: 0 },
-                 { x: 0, y: container_size.height },
-                 { x: container_size.width, y: container_size.height },
-                 { x: container_size.width, y: 0 },
-                 { x: 0, y: 0},
-                 viewport_triangle[0],
-                 viewport_triangle[2],
-                 viewport_triangle[1],
-                 viewport_triangle[0]],
-        fill: 'white', strokeWidth: 0, opacity: 0.7,
-        drawHitFunc: function() { }
+    label_layer.add(new Kinetic.Line({ 
+        closed: true,
+        points: [0, 0,
+                 0, container_size.height,
+                 container_size.width, container_size.height,
+                 container_size.width, 0,
+                 0, 0,
+                 viewport_triangle[0].x, viewport_triangle[0].y,
+                 viewport_triangle[2].x, viewport_triangle[2].y,
+                 viewport_triangle[1].x, viewport_triangle[1].y,
+                 viewport_triangle[0].x, viewport_triangle[0].y],
+        fill: 'white', 
+        strokeWidth: 0, 
+        opacity: 0.7,
+        hitFunc: function() { }
     }));
 
     // Solid red outline
-    label_layer.add(new Kinetic.Polygon({
-        points: viewport_triangle,
-        strokeWidth: 2, stroke: 'red',
-        drawHitFunc: function() { }
+    label_layer.add(new Kinetic.Line({
+        closed: true,
+        points: [viewport_triangle[0].x, viewport_triangle[0].y,
+                 viewport_triangle[1].x, viewport_triangle[1].y,
+                 viewport_triangle[2].x, viewport_triangle[2].y],
+        strokeWidth: 2, 
+        stroke: 'red',
+        hitFunc: function() { }
     }));
 
     // Labeled corners
@@ -143,6 +150,7 @@ function triangular_viewport_control(named_parameters) {
         label_layer.add(circled_letter(letter, point, false));
     });
 
+    console.log(label_layer);
     label_layer.draw(); // Kick it for good measure
 
     return {
@@ -206,13 +214,26 @@ function warpable_triangle_control(named_parameters) {
       mind, so I create one polygon and mutate its points according to the changing
       triangle. 
     */
+
+    var convertPoints = function(points) {
+        return _.chain(self.warped_triangle())
+            .map(function(point) {
+                return [point.x, point.y]
+            })
+            .flatten()
+            .tap(function(v) { console.log(v); })
+            .value();
+    };
     
-    var outline = new Kinetic.Polygon({
-        points: self.warped_triangle(),
+    var outline = new Kinetic.Line({
+        closed: true,
+        points: convertPoints(self.warped_triangle),
         strokeWidth: 2, stroke: 'red',
-        drawHitFunc: function() { }
+        hitFunc: function() { }
     })
-    ko.computed(function() { outline.setPoints(self.warped_triangle()) }); 
+    ko.computed(function() { 
+        outline.setPoints(convertPoints(self.warped_triangle()));
+    });
     control_layer.add(outline);
     _(corners).each(function(corner) { control_layer.add(corner); }); // Javascript fails at eta-contraction
     control_layer.draw(); // Kick
@@ -381,11 +402,11 @@ function barycentric_to_cartesian(triangle, uv) {
  */
 
 function circled_letter(letter, position, draggable) {        
-    var options = _({ draggable: draggable }).extend(draggable ? {} : { drawHitFunc: function() { } });
+    var options = draggable ? {} : { hitFunc: function() { } };
 
     var group = new Kinetic.Group(_({
         x: position.x, y: position.y,
-        draggable: true
+        draggable: draggable,
     }).extend(options));
 
     var circle = new Kinetic.Circle(_({
@@ -393,13 +414,15 @@ function circled_letter(letter, position, draggable) {
         radius: 10,
         fill: 'white', stroke: 'red',
         strokeWidth: 2, 
-        draggable: true
+        draggable: false
     }).extend(options));
     group.add(circle);
 
     group.add(new Kinetic.Text(_({
         x: -4, y: -6,
-        text: letter, textFill: 'red',
+        text: letter, 
+        draggable: false,
+        fill: 'red',
         opacity: 1.0,
     }).extend(options)));
             
