@@ -4,9 +4,9 @@ Code Slash Slash Comment
 These are articles from the blog at http://codeslashslashcomment.com 
 
 They are explorations / self-teaching sessions of the author in various
-libraries and techniques, generally in Scala.
+libraries and techniques.
 
-The articles are mostly heavily commented Scala, with accomanying
+The articles are mostly heavily commented code, with accomanying
 text files containing the final draft of the text on the blog.
 The code is licensed under the Apache 2.0 License so you should be able to use
 it in whatever way you like. I ask that the actual text of the article not be
