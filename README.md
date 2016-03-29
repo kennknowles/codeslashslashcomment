@@ -1,4 +1,4 @@
-Code Slash Clash Comment
+Code Slash Slash Comment
 ========================
 
 These are articles from the blog at http://codeslashslashcomment.com 
