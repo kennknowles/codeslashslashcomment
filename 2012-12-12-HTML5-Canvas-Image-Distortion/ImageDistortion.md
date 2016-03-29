@@ -1,7 +1,7 @@
 
 
 Note that for security reasons all the Javascript and images involved must
-be hosted from the same origin. To try this at home (at lesat in Chrome) you 
+be hosted from the same origin. To try this at home (at least in Chrome) you 
 may need to run a little HTTP server. To make this easy for you, just run
 this in a directory containing the example code:
 
